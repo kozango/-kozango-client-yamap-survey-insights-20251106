@@ -215,6 +215,17 @@ def analyze_continuation(df):
     # 非継続した人（解約した人）
     discontinued = df[df[status_col].str.contains('契約が終了している|解約', na=False)]
     
+    # 継続率の計算
+    total = len(continuing) + len(discontinued)
+    if total > 0:
+        continuation_rate = len(continuing) / total * 100
+        print(f"\n【継続率】")
+        print(f"  継続者数（分子）: {len(continuing)}人")
+        print(f"  非継続者数: {len(discontinued)}人")
+        print(f"  合計（分母）: {total}人")
+        print(f"  継続率: {continuation_rate:.1f}%")
+        print(f"    = {len(continuing)}人 / {total}人")
+    
     # 継続理由を分析
     if len(continuing) > 0:
         print(f"\n【継続している人】")

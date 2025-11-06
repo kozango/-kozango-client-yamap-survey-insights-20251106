@@ -134,13 +134,17 @@ def create_marketing_insights():
         all_reasons.extend(split_multiple_choice(reasons_str))
     continue_reasons = pd.Series(all_reasons).value_counts().head(5)
     
+    total = len(continuing) + len(discontinued)
+    continuation_rate = len(continuing) / total * 100 if total > 0 else 0
     insights["リサーチクエスチョン3"]["インサイト"].append({
         "見出し": "継続理由",
-        "継続者数": len(continuing),
-        "継続率": f"{len(continuing)/(len(continuing)+len(discontinued))*100:.1f}%",
-        "主要な継続理由": continue_reasons.to_dict(),
+        "継続者数（分子）": int(len(continuing)),
+        "非継続者数": int(len(discontinued)),
+        "合計（分母）": int(total),
+        "継続率": f"{continuation_rate:.1f}%",
+        "主要な継続理由": {k: int(v) for k, v in continue_reasons.to_dict().items()},
         "マーケ施策への示唆": [
-            "継続率は約75%",
+            f"継続率は{continuation_rate:.1f}%（{len(continuing)}人/{total}人）",
             "1年を通した安心、コスパ、頻度の高さが主要理由",
             "これらの価値をLPやプロモーションで強調"
         ]
@@ -178,11 +182,17 @@ def create_marketing_insights():
             f.write(f"## {q_num}: {q_data['タイトル']}\n\n")
             for insight in q_data['インサイト']:
                 f.write(f"### {insight['見出し']}\n\n")
-                # 分母と分子を明記
+                # 分母と分子を明記（②用）
                 if '分母（短期プラン加入者総数）' in insight:
                     f.write(f"**分母（短期プラン加入者総数）:** {insight['分母（短期プラン加入者総数）']}人\n\n")
                     f.write(f"**分子（あまり/全く検討していない人の合計）:** {insight['分子（あまり/全く検討していない人の合計）']}人\n\n")
                     f.write(f"**割合:** {insight['割合']}\n\n")
+                # 分母と分子を明記（③用）
+                if '合計（分母）' in insight:
+                    f.write(f"**継続者数（分子）:** {insight['継続者数（分子）']}人\n\n")
+                    f.write(f"**非継続者数:** {insight['非継続者数']}人\n\n")
+                    f.write(f"**合計（分母）:** {insight['合計（分母）']}人\n\n")
+                    f.write(f"**継続率:** {insight['継続率']}\n\n")
                 if '内容' in insight:
                     f.write("**データ:**\n")
                     for key, value in insight['内容'].items():
