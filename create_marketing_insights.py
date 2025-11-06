@@ -22,6 +22,10 @@ def create_marketing_insights():
     df = pd.read_csv(CSV_PATH, encoding='utf-8')
     
     insights = {
+        "基本情報": {
+            "タイトル": "アンケート基本情報",
+            "インサイト": []
+        },
         "リサーチクエスチョン1": {
             "タイトル": "属性ごとの加入動機、価値、加入タイミング、経路",
             "インサイト": []
@@ -35,6 +39,51 @@ def create_marketing_insights():
             "インサイト": []
         }
     }
+    
+    # 基本情報の集計
+    total_responses = len(df)
+    
+    # デモグラフィック情報
+    age_dist = df['年代をお選びください。'].value_counts().sort_index().to_dict()
+    gender_dist = df['性別をお選びください。'].value_counts().to_dict()
+    region_dist = df['お住まいの地域をお選びください。'].value_counts().head(10).to_dict()
+    
+    # 加入保険の内訳
+    status_col = '以下から、現在のご加入状況について1つお選びください。'
+    insurance_status = df[status_col].value_counts()
+    
+    # 主要な保険プランに集約
+    insurance_summary = {
+        "山歩保険に加入中": int(insurance_status.get('山歩保険に加入し、現在も加入中', 0)),
+        "外あそびレジャー保険1年契約に加入中": int(insurance_status.get('外あそびレジャー保険の1年契約に加入し、現在も加入中', 0)),
+        "外あそびレジャー保険短期契約（現在加入中）": int(insurance_status.get('外あそびレジャー保険の7日契約、もしくは30日契約に現在加入中', 0)),
+        "外あそびレジャー保険短期契約（契約終了）": int(insurance_status.get('外あそびレジャー保険の7日契約、もしくは30日契約に加入し、現在は契約が終了している', 0)),
+        "短期から年契約に移行": int(insurance_status.get('外あそびレジャー保険の7日・30日契約に加入した後に、1年契約に移行した', 0)),
+        "その他・契約終了": int(df[status_col].str.contains('契約が終了している|解約', na=False).sum())
+    }
+    
+    insights["基本情報"]["インサイト"] = [
+        {
+            "見出し": "調査概要",
+            "総回答数": total_responses,
+            "回答期間": {
+                "開始": str(df['タイムスタンプ'].min()),
+                "終了": str(df['タイムスタンプ'].max())
+            }
+        },
+        {
+            "見出し": "デモグラフィック情報",
+            "総回答数": total_responses,  # パーセント計算用に追加
+            "年代別分布": {k: int(v) for k, v in age_dist.items()},
+            "性別分布": {k: int(v) for k, v in gender_dist.items()},
+            "地域別分布（上位10）": {k: int(v) for k, v in region_dist.items()}
+        },
+        {
+            "見出し": "加入保険の内訳",
+            "内訳": insurance_summary,
+            "合計": int(sum(insurance_summary.values()))
+        }
+    ]
     
     # ①属性別分析の主要インサイト
     # 年代別の特徴
@@ -250,7 +299,57 @@ def create_marketing_insights():
     with open(md_path, 'w', encoding='utf-8') as f:
         f.write("# YAMAPアウトドア保険 マーケティングインサイトレポート\n\n")
         
+        # 基本情報を最初に表示
+        if "基本情報" in insights:
+            basic_info = insights["基本情報"]
+            # 総回答数を取得
+            total_responses = None
+            for insight in basic_info['インサイト']:
+                if '総回答数' in insight and insight['見出し'] == '調査概要':
+                    total_responses = insight['総回答数']
+                    break
+            
+            f.write(f"## 基本情報: {basic_info['タイトル']}\n\n")
+            for insight in basic_info['インサイト']:
+                f.write(f"### {insight['見出し']}\n\n")
+                if '総回答数' in insight and insight['見出し'] == '調査概要':
+                    f.write(f"**総回答数:** {insight['総回答数']}件\n\n")
+                    if '回答期間' in insight:
+                        f.write(f"**回答期間:**\n")
+                        f.write(f"- 開始: {insight['回答期間']['開始']}\n")
+                        f.write(f"- 終了: {insight['回答期間']['終了']}\n\n")
+                if '年代別分布' in insight:
+                    total_for_pct = insight.get('総回答数', total_responses)
+                    f.write("**年代別分布:**\n")
+                    for age, count in insight['年代別分布'].items():
+                        pct = count / total_for_pct * 100
+                        f.write(f"- {age}: {count}人 ({pct:.1f}%)\n")
+                    f.write("\n")
+                if '性別分布' in insight:
+                    total_for_pct = insight.get('総回答数', total_responses)
+                    f.write("**性別分布:**\n")
+                    for gender, count in insight['性別分布'].items():
+                        pct = count / total_for_pct * 100
+                        f.write(f"- {gender}: {count}人 ({pct:.1f}%)\n")
+                    f.write("\n")
+                if '地域別分布（上位10）' in insight:
+                    total_for_pct = insight.get('総回答数', total_responses)
+                    f.write("**地域別分布（上位10）:**\n")
+                    for region, count in insight['地域別分布（上位10）'].items():
+                        pct = count / total_for_pct * 100
+                        f.write(f"- {region}: {count}人 ({pct:.1f}%)\n")
+                    f.write("\n")
+                if '内訳' in insight:
+                    f.write("**加入保険の内訳:**\n")
+                    for insurance, count in insight['内訳'].items():
+                        pct = count / insight['合計'] * 100 if insight['合計'] > 0 else 0
+                        f.write(f"- {insurance}: {count}人 ({pct:.1f}%)\n")
+                    f.write(f"\n**合計:** {insight['合計']}人\n\n")
+        
+        # リサーチクエスチョンを表示
         for q_num, q_data in insights.items():
+            if q_num == "基本情報":
+                continue  # 基本情報は既に表示済み
             f.write(f"## {q_num}: {q_data['タイトル']}\n\n")
             for insight in q_data['インサイト']:
                 f.write(f"### {insight['見出し']}\n\n")
