@@ -64,13 +64,85 @@ def create_marketing_insights():
             "主要価値": benefit.to_dict() if len(benefit) > 0 else {}
         }
     
+    # 年代別の詳細分析
+    detailed_insights = []
+    
+    # 「家族への責任」の分析
+    benefit_col = '保険加入後、保険から感じるメリットとして、以下のどれを最も実感しますか？'
+    reason_col = 'あなたがYAMAPアウトドア保険に加入した理由を教えてください。（当てはまるものに全てチェックをしてください）[MA]'
+    
+    family_resp_60plus = len(df[(df['年代をお選びください。'].isin(['60代', '70代以上'])) & 
+                                 (df[benefit_col] == '「家族への責任」を果たしている')])
+    total_60plus = len(df[df['年代をお選びください。'].isin(['60代', '70代以上'])])
+    family_resp_30_40 = len(df[(df['年代をお選びください。'].isin(['30代', '40代'])) & 
+                               (df[benefit_col] == '「家族への責任」を果たしている')])
+    total_30_40 = len(df[df['年代をお選びください。'].isin(['30代', '40代'])])
+    
+    # 「手続きの簡単さ」の分析
+    easy_30_40 = 0
+    for reasons_str in df[(df['年代をお選びください。'].isin(['30代', '40代']))][reason_col].dropna():
+        if '加入手続きが簡単だったから' in str(reasons_str):
+            easy_30_40 += 1
+    easy_60plus = 0
+    for reasons_str in df[(df['年代をお選びください。'].isin(['60代', '70代以上']))][reason_col].dropna():
+        if '加入手続きが簡単だったから' in str(reasons_str):
+            easy_60plus += 1
+    
     insights["リサーチクエスチョン1"]["インサイト"].append({
         "見出し": "年代別の特徴",
         "内容": age_analysis,
+        "詳細分析": {
+            "家族への責任": {
+                "60代以上": {
+                    "人数": int(family_resp_60plus),
+                    "分母": int(total_60plus),
+                    "割合": f"{family_resp_60plus/total_60plus*100:.1f}%",
+                    "分析": "60代以上では「家族への責任」が2番目に高い価値（約30%）。1位は「いつでも山に行ける安心」（約50%）だが、家族への配慮は60代以上で相対的に高い。"
+                },
+                "30-40代": {
+                    "人数": int(family_resp_30_40),
+                    "分母": int(total_30_40),
+                    "割合": f"{family_resp_30_40/total_30_40*100:.1f}%",
+                    "分析": "30-40代では「家族への責任」が20-30%程度で、60代以上より低い。"
+                }
+            },
+            "手続きの簡単さ": {
+                "30-40代": {
+                    "回答数": int(easy_30_40),
+                    "分母": int(total_30_40),
+                    "割合": f"{easy_30_40/total_30_40*100:.1f}%",
+                    "分析": "30-40代では「手続きの簡単さ」が加入理由の上位に入る（約60%）。全年代平均（57.3%）より高く、特に40代が62.7%と高い。"
+                },
+                "60代以上": {
+                    "回答数": int(easy_60plus),
+                    "分母": int(total_60plus),
+                    "割合": f"{easy_60plus/total_60plus*100:.1f}%",
+                    "分析": "60代以上でも「手続きの簡単さ」は約56%と高いが、30-40代ほどではない。"
+                }
+            }
+        },
         "マーケ施策への示唆": [
-            "60代以上は「家族への責任」を重視→LPで家族への配慮を強調",
-            "30-40代は「手続きの簡単さ」を重視→UI/UXの改善を訴求",
-            "全年代で「YAMAPアプリ内バナー」が主要経路→アプリ内訴求の強化"
+            {
+                "示唆": "60代以上は「家族への責任」を重視→LPで家族への配慮を強調",
+                "根拠": {
+                    "データ": f"60代以上で「家族への責任」を感じた人は{family_resp_60plus}人/{total_60plus}人（{family_resp_60plus/total_60plus*100:.1f}%）",
+                    "プロセス": "60代以上では「いつでも山に行ける安心」が1位（約50%）だが、「家族への責任」が2位（約30%）で、他の年代と比べて相対的に高い。価値観の違いとして、家族への配慮を訴求することで共感を得られやすい。"
+                }
+            },
+            {
+                "示唆": "30-40代は「手続きの簡単さ」を重視→UI/UXの改善を訴求",
+                "根拠": {
+                    "データ": f"30-40代で「手続きの簡単さ」を理由にした人は{easy_30_40}回/{total_30_40}人（{easy_30_40/total_30_40*100:.1f}%）",
+                    "プロセス": "30-40代では「手続きの簡単さ」が加入理由として上位（約60%）。全年代平均（57.3%）より高く、特に40代が62.7%と突出。デジタルネイティブ世代として、手続きの煩雑さを嫌う傾向が強い。UI/UXの改善を具体的に訴求することで、加入意欲を高められる。"
+                }
+            },
+            {
+                "示唆": "全年代で「YAMAPアプリ内バナー」が主要経路→アプリ内訴求の強化",
+                "根拠": {
+                    "データ": "全年代で「YAMAPアプリ内のバナー」が認知経路の1位（約55-65%）",
+                    "プロセス": "アプリ利用中に自然に保険情報に触れる機会が多く、ユーザーの行動フローに沿った訴求が効果的。"
+                }
+            }
         ]
     })
     
@@ -182,6 +254,21 @@ def create_marketing_insights():
             f.write(f"## {q_num}: {q_data['タイトル']}\n\n")
             for insight in q_data['インサイト']:
                 f.write(f"### {insight['見出し']}\n\n")
+                
+                # 詳細分析の表示（①用）
+                if '詳細分析' in insight:
+                    f.write("**詳細分析:**\n\n")
+                    if '家族への責任' in insight['詳細分析']:
+                        f.write("##### 家族への責任\n\n")
+                        for age_group, data in insight['詳細分析']['家族への責任'].items():
+                            f.write(f"- **{age_group}:** {data['人数']}人/{data['分母']}人（{data['割合']}）\n")
+                            f.write(f"  - {data['分析']}\n\n")
+                    if '手続きの簡単さ' in insight['詳細分析']:
+                        f.write("##### 手続きの簡単さ\n\n")
+                        for age_group, data in insight['詳細分析']['手続きの簡単さ'].items():
+                            f.write(f"- **{age_group}:** {data['回答数']}回/{data['分母']}人（{data['割合']}）\n")
+                            f.write(f"  - {data['分析']}\n\n")
+                
                 # 分母と分子を明記（②用）
                 if '分母（短期プラン加入者総数）' in insight:
                     f.write(f"**分母（短期プラン加入者総数）:** {insight['分母（短期プラン加入者総数）']}人\n\n")
@@ -199,9 +286,18 @@ def create_marketing_insights():
                         f.write(f"- {key}: {value}\n")
                     f.write("\n")
                 if 'マーケ施策への示唆' in insight:
-                    f.write("**マーケティング施策への示唆:**\n")
-                    for suggestion in insight['マーケ施策への示唆']:
-                        f.write(f"- {suggestion}\n")
+                    f.write("**マーケティング施策への示唆:**\n\n")
+                    # 示唆が辞書形式の場合（詳細版）
+                    if isinstance(insight['マーケ施策への示唆'], list) and len(insight['マーケ施策への示唆']) > 0 and isinstance(insight['マーケ施策への示唆'][0], dict):
+                        for suggestion in insight['マーケ施策への示唆']:
+                            f.write(f"##### {suggestion['示唆']}\n\n")
+                            if '根拠' in suggestion:
+                                f.write(f"- **データ:** {suggestion['根拠']['データ']}\n")
+                                f.write(f"- **プロセス:** {suggestion['根拠']['プロセス']}\n\n")
+                    else:
+                        # 文字列形式の場合（従来版）
+                        for suggestion in insight['マーケ施策への示唆']:
+                            f.write(f"- {suggestion}\n")
                     f.write("\n")
         
     print(f"✓ マーケティングインサイトレポートを保存:")
