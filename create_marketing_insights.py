@@ -219,11 +219,12 @@ def create_marketing_insights():
         
         insights["リサーチクエスチョン2"]["インサイト"].append({
             "見出し": "アップセル経験者の特徴",
-            "切り替え人数": len(switched),
+            "分子（短期プランから年契約に切り替えた人）": int(len(switched)),
+            "分母（年契約加入者全体）": int(len(year_plan)),
             "切り替え率": f"{len(switched)/len(year_plan)*100:.1f}%",
-            "切り替えきっかけ": trigger_counts.to_dict(),
+            "切り替えきっかけ": {k: int(v) for k, v in trigger_counts.to_dict().items()},
             "マーケ施策への示唆": [
-            f"短期→年契約への切り替え率は{len(switched)/len(year_plan)*100:.1f}%",
+            f"短期→年契約への切り替え率は{len(switched)/len(year_plan)*100:.1f}%（{len(switched)}人/{len(year_plan)}人）",
             "切り替えきっかけを分析して、タイミングに合わせた訴求を実施",
             "短期プラン利用者への年契約提案を強化"
         ]})
@@ -373,6 +374,11 @@ def create_marketing_insights():
                     f.write(f"**分母（短期プラン加入者総数）:** {insight['分母（短期プラン加入者総数）']}人\n\n")
                     f.write(f"**分子（あまり/全く検討していない人の合計）:** {insight['分子（あまり/全く検討していない人の合計）']}人\n\n")
                     f.write(f"**割合:** {insight['割合']}\n\n")
+                # アップセル経験者の切り替え率（②用）
+                if '分子（短期プランから年契約に切り替えた人）' in insight:
+                    f.write(f"**分子（短期プランから年契約に切り替えた人）:** {insight['分子（短期プランから年契約に切り替えた人）']}人\n\n")
+                    f.write(f"**分母（年契約加入者全体）:** {insight['分母（年契約加入者全体）']}人\n\n")
+                    f.write(f"**切り替え率:** {insight['切り替え率']}\n\n")
                 # 分母と分子を明記（③用）
                 if '合計（分母）' in insight:
                     f.write(f"**継続者数（分子）:** {insight['継続者数（分子）']}人\n\n")
