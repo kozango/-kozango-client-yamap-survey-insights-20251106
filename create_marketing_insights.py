@@ -111,11 +111,15 @@ def create_marketing_insights():
     short_plan = df[df[status_col].str.contains('7日契約|30日契約', na=False)]
     if len(short_plan) > 0:
         intention = short_plan['今後、1年契約に切り替えるご意向はありますか？'].value_counts()
+        not_considering = intention.get('あまり検討していない', 0) + intention.get('全く検討していない', 0)
         insights["リサーチクエスチョン2"]["インサイト"].append({
             "見出し": "短期プラン加入者の年契約への意向",
-            "内容": intention.to_dict(),
+            "分母（短期プラン加入者総数）": int(len(short_plan)),
+            "分子（あまり/全く検討していない人の合計）": int(not_considering),
+            "割合": f"{not_considering/len(short_plan)*100:.1f}%",
+            "内容": {k: int(v) for k, v in intention.to_dict().items()},
             "マーケ施策への示唆": [
-            "短期プラン加入者の約70%は「あまり/全く検討していない」",
+            f"短期プラン加入者の約{not_considering/len(short_plan)*100:.1f}%（{not_considering}人/{len(short_plan)}人）は「あまり/全く検討していない」",
             "年契約のメリット（コスパ、手間の削減）を訴求する必要あり"
         ]})
     
@@ -174,6 +178,11 @@ def create_marketing_insights():
             f.write(f"## {q_num}: {q_data['タイトル']}\n\n")
             for insight in q_data['インサイト']:
                 f.write(f"### {insight['見出し']}\n\n")
+                # 分母と分子を明記
+                if '分母（短期プラン加入者総数）' in insight:
+                    f.write(f"**分母（短期プラン加入者総数）:** {insight['分母（短期プラン加入者総数）']}人\n\n")
+                    f.write(f"**分子（あまり/全く検討していない人の合計）:** {insight['分子（あまり/全く検討していない人の合計）']}人\n\n")
+                    f.write(f"**割合:** {insight['割合']}\n\n")
                 if '内容' in insight:
                     f.write("**データ:**\n")
                     for key, value in insight['内容'].items():

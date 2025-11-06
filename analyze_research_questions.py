@@ -186,10 +186,18 @@ def analyze_upsell_experience(df):
     short_plan = df[df[status_col].str.contains('7日契約|30日契約', na=False)]
     if len(short_plan) > 0:
         print(f"\n【現在短期プラン加入者の年契約への切り替え意向】")
+        print(f"  分母（短期プラン加入者総数）: {len(short_plan)}人")
         intention_counts = short_plan[future_intention_col].value_counts()
         for intention, count in intention_counts.items():
             pct = count / len(short_plan) * 100
             print(f"  {intention}: {count}人 ({pct:.1f}%)")
+        
+        # あまり/全く検討していない人の合計
+        not_considering = intention_counts.get('あまり検討していない', 0) + intention_counts.get('全く検討していない', 0)
+        print(f"\n  【あまり/全く検討していない人の合計】")
+        print(f"    分子: {not_considering}人")
+        print(f"    分母: {len(short_plan)}人")
+        print(f"    割合: {not_considering/len(short_plan)*100:.1f}%")
     
     return switched
 
